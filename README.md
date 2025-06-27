@@ -1,4 +1,9 @@
 # Azure AI Foundry Agent Chat UI
+> [!IMPORTANT]
+> このリポジトリは、Github Copilot Agent モードにより、Vive Coding したものです。
+
+> [!Warning]
+> テストなども、十分に出来ていませんので、ご利用の際はご注意ください。
 
 Azure AI Foundry Agent と連携するモダンなChat UIアプリケーションです。テキストメッセージとファイル添付によってAIエージェントと対話できます。
 
@@ -14,7 +19,10 @@ Azure AI Foundry Agent と連携するモダンなChat UIアプリケーショ�
 ## 📋 前提条件
 
 - Node.js 18以上
-- Azure AI Foundry Agent のエンドポイントとAPIキー
+- Azure AI Foundry Agent
+  - エンドポイント
+  - APIキー
+  - Agent ID
 
 ## 🛠️ セットアップ
 
