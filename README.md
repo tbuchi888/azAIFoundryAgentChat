@@ -43,9 +43,9 @@ cp .env.example .env
 `.env`ファイルを編集：
 
 ```env
-VITE_AZURE_AI_FOUNDARY_ENDPOINT_URL=https://your-agent-endpoint.azure.com
-VITE_AZURE_AI_FOUNDARY_API_KEY=your-api-key-here
-VITE_AZURE_AI_AGENT_ID=your-agent-id-here
+VITE_AZURE_AI_FOUNDARY_ENDPOINT_URL=https://[YOUR_AIFOUNDRY].services.ai.azure.com/api/projects/[YOURPROJECT]
+VITE_AZURE_AI_FOUNDARY_API_KEY=[YOUR_APIKEY or AZ_AUTH_TOKEN]
+VITE_AZURE_AI_AGENT_ID=[YOUR_AGENTID i.e. asst_ABCDEFGXYZ]
 ```
 
 ### 3. 開発サーバーの起動
@@ -82,9 +82,9 @@ docker build -t azure-ai-foundry-chat-ui .
 docker run -d \
   --name azure-ai-chat \
   -p 8080:8080 \
-  -e VITE_AZURE_AI_FOUNDARY_ENDPOINT_URL="https://your-endpoint.azure.com" \
-  -e VITE_AZURE_AI_FOUNDARY_API_KEY="your-api-key" \
-  -e VITE_AZURE_AI_AGENT_ID="your-agent-id" \
+  -e VITE_AZURE_AI_FOUNDARY_ENDPOINT_URL="https://[YOUR_AIFOUNDRY].services.ai.azure.com/api/projects/[YOURPROJECT]" \
+  -e VITE_AZURE_AI_FOUNDARY_API_KEY="[YOUR_APIKEY or AZ_AUTH_TOKEN]" \
+  -e VITE_AZURE_AI_AGENT_ID="[YOUR_AGENTID i.e. asst_ABCDEFGXYZ]" \
   azure-ai-foundry-chat-ui
 ```
 
