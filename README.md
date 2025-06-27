@@ -175,8 +175,8 @@ src/
 ```
 
 ## 🔗 関連リンク
-
-- [Azure AI Foundry Agent API リファレンス](https://learn.microsoft.com/ja-jp/azure/ai-foundry/agent-api-reference)
+- [クイック スタート: Azure AI Foundry の概要 Foundry ベース](https://learn.microsoft.com/ja-jp/azure/ai-foundry/quickstarts/get-started-code?tabs=azure-ai-foundry&pivots=fdp-project)
+- [Azure AI Foundry Agent REST API Data Plane](https://learn.microsoft.com/en-us/rest/api/aifoundry/aiagents/operation-groups?view=rest-aifoundry-aiagents-v1)
 - [React Documentation](https://react.dev/)
 - [TypeScript Documentation](https://www.typescriptlang.org/)
 - [Tailwind CSS Documentation](https://tailwindcss.com/)
