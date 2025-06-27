@@ -93,7 +93,7 @@ docker run -d \
 1. **環境変数ファイルの設定:**
 
 ```bash
-cp .env.docker .env
+cp .env.example .env
 # .envファイルを編集して実際のAzure設定を入力
 ```
 
