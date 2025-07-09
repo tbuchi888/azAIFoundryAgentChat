@@ -7,6 +7,8 @@
 
 Azure AI Foundry Agent と連携するモダンなChat UIアプリケーションです。テキストメッセージによってAIエージェントと対話できます。
 
+![image](https://github.com/user-attachments/assets/b5f6e7de-a05c-47f6-8d12-3a4745eebea2)
+
 ## 🚀 機能
 
 - ✨ **モダンなUI**: React + TypeScript + Tailwind CSSによる美しいインターフェース
