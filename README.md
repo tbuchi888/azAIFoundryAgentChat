@@ -24,7 +24,7 @@ Azure AI Foundry Agent と連携するモダンなChat UIアプリケーショ�
 - Azure AI Foundry Agent
   - エンドポイント
   - APIキー
-  - Agent ID
+  - Agent の作成
 
 ## 🛠️ セットアップ
 
@@ -102,28 +102,10 @@ docker build -t azure-ai-foundry-chat-ui .
 2. **Docker コンテナの実行:**
 
 ```bash
-docker run -d \
+docker run -d --rm \
   --name azure-ai-chat \
   -p 8080:8080 \
-  -e VITE_AZURE_AI_FOUNDARY_ENDPOINT_URL="https://[YOUR_AIFOUNDRY].services.ai.azure.com/api/projects/[YOURPROJECT]" \
-  -e VITE_AZURE_AI_FOUNDARY_API_KEY="[YOUR_APIKEY or AZ_AUTH_TOKEN]" \
-  -e VITE_AZURE_AI_AGENT_ID="[YOUR_AGENTID i.e. asst_ABCDEFGXYZ]" \
   azure-ai-foundry-chat-ui
-```
-
-### Docker Compose を使用（推奨）
-
-1. **環境変数ファイルの設定:**
-
-```bash
-cp .env.example .env
-# .envファイルを編集して実際のAzure設定を入力
-```
-
-2. **Docker Compose で起動:**
-
-```bash
-docker-compose up -d
 ```
 
 3. **アクセス:**
@@ -133,17 +115,8 @@ docker-compose up -d
 4. **停止:**
 
 ```bash
-docker-compose down
+docker stop azure-ai-chat
 ```
-
-### コンテナの特徴
-
-- **Multi-stage build**: 効率的なイメージサイズ
-- **Non-root user**: セキュリティ強化
-- **Nginx**: 高性能なWebサーバー
-- **Health check**: コンテナの健全性監視
-- **Gzip圧縮**: 転送速度の最適化
-- **セキュリティヘッダー**: XSS、CSRF保護
 
 ## 📚 使用方法
 
@@ -152,17 +125,6 @@ docker-compose down
 3. **ファイル添付**: ドラッグ&ドロップまたはクリックしてファイルを選択し、メッセージと一緒に送信
 4. **設定変更**: チャット画面右上の設定ボタンから、いつでも設定を変更可能
 5. **対話履歴**: 送信したメッセージとAIからの応答が時系列で表示
-
-## 🔧 技術仕様
-
-### サポートファイル形式
-- **テキスト**: .txt, .md
-- **文書**: .pdf, .docx, .xlsx
-- **画像**: .jpg, .jpeg, .png, .gif, .webp
-- **データ**: .json, .csv
-
-### ファイルサイズ制限
-- 最大10MBまで
 
 ## 🏗️ アーキテクチャ
 
