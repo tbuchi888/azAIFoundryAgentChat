@@ -149,20 +149,29 @@ docker stop azure-ai-chat
 
 ```
 src/
-├── components/           # Reactコンポーネント
-│   ├── ChatInterface.tsx  # メインチャット画面
-│   ├── ChatMessage.tsx    # メッセージ表示
-│   └── FileUpload.tsx     # ファイルアップロード
-├── services/            # APIサービス
-│   └── azureAgentService.ts # Azure Agent API連携
-├── types/               # TypeScript型定義
-│   └── agent.ts         # Chat/Agent関連の型
-├── utils/               # ユーティリティ関数
-│   └── fileUtils.ts     # ファイル処理関数
-└── App.tsx              # メインアプリケーション
+├── components/              # Reactコンポーネント
+│   ├── ChatInterface.tsx    # メインチャット画面
+│   ├── ChatMessage.tsx      # メッセージ表示コンポーネント
+│   ├── ConfigurationPanel.tsx # 設定パネル（初期設定用）
+│   ├── SettingsPanel.tsx    # 設定管理パネル
+│   └── SetupWizard.tsx      # 初期セットアップウィザード
+├── hooks/                   # Reactカスタムフック
+│   └── useAzureConfig.ts    # Azure設定管理フック
+├── services/                # APIサービス
+│   └── azureAgentService.ts # Azure AI Foundry Agent API連携
+├── types/                   # TypeScript型定義
+│   └── agent.ts             # Chat/Agent関連の型定義
+├── assets/                  # 静的アセット
+│   └── react.svg            # Reactロゴ
+├── App.tsx                  # メインアプリケーションコンポーネント
+├── App.css                  # アプリケーション固有のスタイル
+├── index.css                # グローバルスタイル（Tailwind CSS含む）
+├── main.tsx                 # アプリケーションエントリーポイント
+└── vite-env.d.ts           # Vite環境変数の型定義
 ```
 
 ## 🔗 関連リンク
+
 - [クイック スタート: Azure AI Foundry の概要 Foundry ベース](https://learn.microsoft.com/ja-jp/azure/ai-foundry/quickstarts/get-started-code?tabs=azure-ai-foundry&pivots=fdp-project)
 - [Azure AI Foundry Agent REST API Data Plane](https://learn.microsoft.com/en-us/rest/api/aifoundry/aiagents/operation-groups?view=rest-aifoundry-aiagents-v1)
 - [React Documentation](https://react.dev/)

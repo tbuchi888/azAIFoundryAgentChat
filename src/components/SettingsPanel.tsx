@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Settings, Save, RefreshCw, AlertCircle, Check } from 'lucide-react';
 import type { AzureConfig } from '../hooks/useAzureConfig';
-import { getAzureAgentsList, getAzureAgentInfo } from '../services/azureAgentService';
+import { getAzureAgentsList } from '../services/azureAgentService';
 
 interface Agent {
   id: string;
