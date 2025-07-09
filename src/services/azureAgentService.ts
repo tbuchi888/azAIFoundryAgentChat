@@ -1,14 +1,11 @@
 import axios, { type AxiosInstance, type AxiosError } from 'axios';
-import { getConfig } from '../config/appConfig';
 import type { 
   CreateThreadAndRunRequest, 
   ThreadRun, 
   ApiConfig, 
-  FileAttachment,
-  ThreadMessageOption,
-  MessageAttachment,
-  VectorStoreDataSource
+  ThreadMessageOption
 } from '../types/agent';
+import type { AzureConfig } from '../hooks/useAzureConfig';
 
 export class AzureAIFoundryAgentService {
   private client: AxiosInstance;
@@ -16,13 +13,28 @@ export class AzureAIFoundryAgentService {
 
   constructor(config: ApiConfig) {
     this.agentId = config.agentId;
+    
+    // Azure AI Foundryの認証ヘッダーを設定
+    const headers: Record<string, string> = {
+      'Content-Type': 'application/json',
+      'Accept': 'application/json',
+      'User-Agent': 'Azure-AI-Foundry-Chat-UI/1.0'
+    };
+
+    // Azure AI Foundryには正しいアクセストークンが必要
+    if (config.apiKey) {
+      // Bearer形式のトークンの場合
+      if (config.apiKey.startsWith('Bearer ')) {
+        headers['Authorization'] = config.apiKey;
+      } else {
+        // アクセストークンをBearerトークンとして設定
+        headers['Authorization'] = `Bearer ${config.apiKey}`;
+      }
+    }
+
     this.client = axios.create({
       baseURL: config.endpoint,
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${config.apiKey}`,
-        'Accept': 'application/json'
-      },
+      headers,
       timeout: 120000, // 2 minutes timeout for agent responses
     });
 
@@ -63,20 +75,14 @@ export class AzureAIFoundryAgentService {
    */
   async createThreadAndRun(
     message: string, 
-    attachments?: FileAttachment[], 
     options?: Partial<CreateThreadAndRunRequest>
   ): Promise<ThreadRun> {
     try {
-      // Prepare message with attachments
+      // Prepare message
       const messageContent: ThreadMessageOption = {
         role: 'user',
         content: message,
       };
-
-      // Add attachments if provided
-      if (attachments && attachments.length > 0) {
-        messageContent.attachments = await this.convertToMessageAttachments(attachments);
-      }
 
       const requestBody: CreateThreadAndRunRequest = {
         assistant_id: this.agentId,
@@ -90,12 +96,14 @@ export class AzureAIFoundryAgentService {
         ...options,
       };
 
+      console.log('Azure AI Foundry API リクエスト送信中...');
       const response = await this.client.post('/threads/runs', requestBody, {
         params: {
           'api-version': 'v1'
         }
       });
 
+      console.log('Azure AI Foundry API レスポンス受信完了');
       return response.data as ThreadRun;
     } catch (error) {
       console.error('Azure AI Foundry Agent API Error:', error);
@@ -176,53 +184,6 @@ export class AzureAIFoundryAgentService {
   }
 
   /**
-   * Convert file attachments to message attachments format
-   */
-  private async convertToMessageAttachments(attachments: FileAttachment[]): Promise<MessageAttachment[]> {
-    return attachments.map(attachment => {
-      // For Azure AI Foundry, we need to upload files first and get file_ids
-      // For now, we'll use data_source approach with base64 data
-      const dataSource: VectorStoreDataSource = {
-        type: 'uri_asset',
-        uri: `data:${attachment.type};base64,${attachment.data}`
-      };
-
-      return {
-        data_source: dataSource,
-        tools: [
-          { type: 'file_search' },
-          { type: 'code_interpreter' }
-        ]
-      };
-    });
-  }
-
-  /**
-   * Upload a file to Azure AI Foundry (if file upload is supported)
-   */
-  async uploadFile(file: File): Promise<string> {
-    try {
-      const formData = new FormData();
-      formData.append('file', file);
-      formData.append('purpose', 'assistants');
-
-      const response = await this.client.post('/files', formData, {
-        headers: {
-          'Content-Type': 'multipart/form-data',
-        },
-        params: {
-          'api-version': 'v1'
-        }
-      });
-
-      return response.data.id;
-    } catch (error) {
-      console.error('Error uploading file:', error);
-      throw new Error('Failed to upload file');
-    }
-  }
-
-  /**
    * Health check method
    */
   async healthCheck(): Promise<boolean> {
@@ -242,10 +203,10 @@ export class AzureAIFoundryAgentService {
   /**
    * Simple method for sending a message and getting a response
    */
-  async sendMessage(message: string, attachments?: FileAttachment[]): Promise<string> {
+  async sendMessage(message: string): Promise<string> {
     try {
       // Create thread and run
-      const run = await this.createThreadAndRun(message, attachments);
+      const run = await this.createThreadAndRun(message);
       
       // Wait for completion
       const completedRun = await this.waitForRunCompletion(run.thread_id, run.id);
@@ -277,18 +238,120 @@ export class AzureAIFoundryAgentService {
       throw new Error('メッセージの送信に失敗しました。');
     }
   }
+
+  /**
+   * Get list of available agents/assistants
+   */
+  async getAgents(): Promise<any[]> {
+    try {
+      const response = await this.client.get('/assistants', {
+        params: {
+          'api-version': 'v1'
+        }
+      });
+
+      return response.data.data || [];
+    } catch (error) {
+      console.error('Error getting agents:', error);
+      throw new Error('Failed to get agents list');
+    }
+  }
 }
 
-// Factory function for creating service instance
-export const createAzureAIFoundryAgentService = (): AzureAIFoundryAgentService => {
-  const appConfig = getConfig();
-  
-  const config: ApiConfig = {
-    endpoint: appConfig.AZURE_AI_FOUNDARY_ENDPOINT_URL,
-    apiKey: appConfig.AZURE_AI_FOUNDARY_API_KEY,
-    agentId: appConfig.AZURE_AI_AGENT_ID,
-  };
+// Static method for getting agents list without full configuration
+export const getAzureAgentsList = async (endpoint: string, apiKey: string): Promise<any[]> => {
+  try {
+    const headers: Record<string, string> = {
+      'Content-Type': 'application/json',
+      'Accept': 'application/json',
+      'User-Agent': 'Azure-AI-Foundry-Chat-UI/1.0'
+    };
 
+    // Azure AI Foundryには正しいアクセストークンが必要
+    if (apiKey) {
+      if (apiKey.startsWith('Bearer ')) {
+        headers['Authorization'] = apiKey;
+      } else {
+        // アクセストークンをBearerトークンとして設定
+        headers['Authorization'] = `Bearer ${apiKey}`;
+      }
+    }
+
+    const client = axios.create({
+      baseURL: endpoint,
+      headers,
+      timeout: 30000,
+    });
+
+    const response = await client.get('/assistants', {
+      params: {
+        'api-version': 'v1'
+      }
+    });
+
+    return response.data.data || [];
+  } catch (error) {
+    console.error('Error getting agents list:', error);
+    if (axios.isAxiosError(error)) {
+      const errorMessage = error.response?.data?.error?.message || 
+                         error.response?.data?.message || 
+                         error.message;
+      throw new Error(`エージェント一覧の取得に失敗しました: ${errorMessage}`);
+    }
+    throw new Error('エージェント一覧の取得に失敗しました');
+  }
+};
+
+// Static method for getting specific agent info
+export const getAzureAgentInfo = async (endpoint: string, apiKey: string, agentId: string): Promise<{ id: string; name: string; description?: string }> => {
+  try {
+    const headers: Record<string, string> = {
+      'Content-Type': 'application/json',
+      'Accept': 'application/json',
+      'User-Agent': 'Azure-AI-Foundry-Chat-UI/1.0'
+    };
+
+    // Azure AI Foundryには正しいアクセストークンが必要
+    if (apiKey) {
+      if (apiKey.startsWith('Bearer ')) {
+        headers['Authorization'] = apiKey;
+      } else {
+        // アクセストークンをBearerトークンとして設定
+        headers['Authorization'] = `Bearer ${apiKey}`;
+      }
+    }
+
+    const client = axios.create({
+      baseURL: endpoint,
+      headers,
+      timeout: 30000,
+    });
+
+    const response = await client.get(`/assistants/${agentId}`, {
+      params: {
+        'api-version': 'v1'
+      }
+    });
+
+    return {
+      id: response.data.id,
+      name: response.data.name || response.data.id,
+      description: response.data.description
+    };
+  } catch (error) {
+    console.error('Error getting agent info:', error);
+    if (axios.isAxiosError(error)) {
+      const errorMessage = error.response?.data?.error?.message || 
+                         error.response?.data?.message || 
+                         error.message;
+      throw new Error(`エージェント情報の取得に失敗しました: ${errorMessage}`);
+    }
+    throw new Error('エージェント情報の取得に失敗しました');
+  }
+};
+
+// Factory function for creating service instance
+export const createAzureAIFoundryAgentService = (config: AzureConfig): AzureAIFoundryAgentService => {
   console.log('Creating Azure AI Foundry Agent Service with config:', {
     hasEndpoint: !!config.endpoint,
     hasApiKey: !!config.apiKey,
@@ -296,9 +359,21 @@ export const createAzureAIFoundryAgentService = (): AzureAIFoundryAgentService =
     endpoint: config.endpoint?.substring(0, 50) + '...',
   });
 
-  if (!config.endpoint || !config.apiKey || !config.agentId) {
-    throw new Error('Azure AI Foundry Agent configuration is missing. Please check environment variables: VITE_AZURE_AI_FOUNDARY_ENDPOINT_URL, VITE_AZURE_AI_FOUNDARY_API_KEY, VITE_AZURE_AI_AGENT_ID');
+  // 設定が不完全な場合は具体的なエラーメッセージを提供
+  const missingConfigs: string[] = [];
+  if (!config.endpoint || config.endpoint.trim() === '') missingConfigs.push('エンドポイントURL');
+  if (!config.apiKey || config.apiKey.trim() === '') missingConfigs.push('APIキー');
+  if (!config.agentId || config.agentId.trim() === '') missingConfigs.push('Agent ID');
+
+  if (missingConfigs.length > 0) {
+    throw new Error(`Azure AI Foundry設定が不完全です。以下の項目を設定してください: ${missingConfigs.join(', ')}`);
   }
 
-  return new AzureAIFoundryAgentService(config);
+  const apiConfig: ApiConfig = {
+    endpoint: config.endpoint,
+    apiKey: config.apiKey,
+    agentId: config.agentId,
+  };
+
+  return new AzureAIFoundryAgentService(apiConfig);
 };

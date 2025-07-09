@@ -1,59 +1,52 @@
-import { User, Bot, Paperclip } from 'lucide-react';
+import { User, Bot } from 'lucide-react';
 import type { ChatMessage } from '../types/agent';
-import { formatFileSize } from '../utils/fileUtils';
 
 interface ChatMessageProps {
   message: ChatMessage;
+  agentName?: string;
 }
 
-export const ChatMessageComponent: React.FC<ChatMessageProps> = ({ message }) => {
+export const ChatMessageComponent: React.FC<ChatMessageProps> = ({ message, agentName }) => {
   const isUser = message.role === 'user';
 
   return (
-    <div className={`flex gap-3 p-4 ${isUser ? 'bg-blue-50' : 'bg-white'}`}>
-      <div className={`flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center ${
-        isUser ? 'bg-blue-500' : 'bg-gray-500'
-      }`}>
-        {isUser ? (
-          <User className="w-5 h-5 text-white" />
-        ) : (
+    <div className={`flex gap-4 ${isUser ? 'justify-end' : 'justify-start'}`}>
+      {!isUser && (
+        <div className="flex-shrink-0 w-10 h-10 rounded-full bg-gradient-to-r from-purple-500 to-pink-500 flex items-center justify-center shadow-lg">
           <Bot className="w-5 h-5 text-white" />
-        )}
-      </div>
+        </div>
+      )}
       
-      <div className="flex-1 min-w-0">
-        <div className="flex items-center gap-2 mb-1">
-          <span className="font-medium text-sm text-gray-900">
-            {isUser ? 'あなた' : 'AI エージェント'}
-          </span>
-          <span className="text-xs text-gray-500">
-            {message.timestamp.toLocaleTimeString('ja-JP')}
-          </span>
-        </div>
-        
-        <div className="prose prose-sm max-w-none">
-          <p className="text-gray-800 whitespace-pre-wrap">{message.content}</p>
-        </div>
-        
-        {message.attachments && message.attachments.length > 0 && (
-          <div className="mt-3 space-y-2">
-            {message.attachments.map((attachment) => (
-              <div
-                key={attachment.id}
-                className="flex items-center gap-2 p-2 bg-gray-100 rounded-lg border"
-              >
-                <Paperclip className="w-4 h-4 text-gray-500" />
-                <span className="text-sm text-gray-700 font-medium">
-                  {attachment.name}
-                </span>
-                <span className="text-xs text-gray-500">
-                  ({formatFileSize(attachment.size)})
-                </span>
-              </div>
-            ))}
+      <div className={`max-w-xs lg:max-w-md xl:max-w-lg ${isUser ? 'order-1' : ''}`}>
+        <div className={`rounded-2xl px-6 py-4 shadow-lg backdrop-blur-sm border ${
+          isUser 
+            ? 'bg-gradient-to-r from-blue-500 to-purple-600 text-white border-white/20' 
+            : 'bg-white/10 text-white border-white/20'
+        }`}>
+          <div className="flex items-center gap-2 mb-2">
+            <span className={`font-semibold text-sm ${isUser ? 'text-white/90' : 'text-white/90'}`}>
+              {isUser ? 'あなた ' : (agentName || 'AI エージェント') + ' '}
+            </span>
+            <span className={`text-xs ${isUser ? 'text-white/60' : 'text-white/60'}`}>
+              {message.timestamp.toLocaleTimeString('ja-JP')}
+            </span>
           </div>
-        )}
+          
+          <div className="prose prose-sm max-w-none">
+            <p className={`whitespace-pre-wrap leading-relaxed ${
+              isUser ? 'text-white' : 'text-white'
+            }`}>
+              {message.content}
+            </p>
+          </div>
+        </div>
       </div>
+
+      {isUser && (
+        <div className="flex-shrink-0 w-10 h-10 rounded-full bg-gradient-to-r from-blue-500 to-cyan-500 flex items-center justify-center shadow-lg order-2">
+          <User className="w-5 h-5 text-white" />
+        </div>
+      )}
     </div>
   );
 };

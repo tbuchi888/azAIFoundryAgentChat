@@ -4,15 +4,6 @@ export interface ChatMessage {
   role: 'user' | 'assistant';
   content: string;
   timestamp: Date;
-  attachments?: FileAttachment[];
-}
-
-export interface FileAttachment {
-  id: string;
-  name: string;
-  size: number;
-  type: string;
-  data: string; // base64 encoded
 }
 
 // Azure AI Foundry Agent API types based on official documentation
@@ -120,7 +111,6 @@ export interface ThreadCreationOptions {
 export interface ThreadMessageOption {
   role: 'user' | 'assistant';
   content: string | MessageContent[];
-  attachments?: MessageAttachment[];
   metadata?: Record<string, string>;
 }
 
@@ -140,39 +130,15 @@ export interface MessageContent {
   };
 }
 
-export interface MessageAttachment {
-  file_id?: string;
-  data_source?: VectorStoreDataSource;
-  tools: MessageAttachmentTool[];
-}
-
-export interface MessageAttachmentTool {
-  type: 'code_interpreter' | 'file_search';
-}
-
-export interface VectorStoreDataSource {
-  type: 'uri_asset' | 'id_asset';
-  uri: string;
-}
-
 export interface ToolResources {
   code_interpreter?: {
     file_ids?: string[];
-    data_sources?: VectorStoreDataSource[];
   };
   file_search?: {
     vector_store_ids?: string[];
-    vector_stores?: VectorStoreConfiguration[];
   };
   azure_ai_search?: {
     indexes?: AISearchIndexResource[];
-  };
-}
-
-export interface VectorStoreConfiguration {
-  name: string;
-  configuration: {
-    data_sources: VectorStoreDataSource[];
   };
 }
 

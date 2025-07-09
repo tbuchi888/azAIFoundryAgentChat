@@ -1,42 +1,71 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Send, AlertCircle, Loader2, RefreshCw } from 'lucide-react';
 import { ChatMessageComponent } from './ChatMessage';
-import { FileUpload } from './FileUpload';
-import type { ChatMessage, FileAttachment, ThreadRun } from '../types/agent';
-import { createAzureAIFoundryAgentService, AzureAIFoundryAgentService } from '../services/azureAgentService';
+import type { ChatMessage, ThreadRun } from '../types/agent';
+import type { AzureConfig } from '../hooks/useAzureConfig';
+import { createAzureAIFoundryAgentService, AzureAIFoundryAgentService, getAzureAgentInfo } from '../services/azureAgentService';
 
-export const ChatInterface: React.FC = () => {
+interface ChatInterfaceProps {
+  config: AzureConfig | null;
+  onConfigUpdate: (config: AzureConfig) => void;
+  onConfigClear: () => void;
+  onConfigReload: () => void;
+}
+
+export const ChatInterface: React.FC<ChatInterfaceProps> = ({
+  config,
+}) => {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [inputValue, setInputValue] = useState('');
-  const [attachments, setAttachments] = useState<FileAttachment[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [agentService, setAgentService] = useState<AzureAIFoundryAgentService | null>(null);
   const [currentThreadId, setCurrentThreadId] = useState<string | null>(null);
   const [currentRun, setCurrentRun] = useState<ThreadRun | null>(null);
+  const [agentName, setAgentName] = useState<string>('');
   
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
   // Initialize Azure AI Foundry Agent service
   useEffect(() => {
-    try {
-      const service = createAzureAIFoundryAgentService();
-      setAgentService(service);
+    if (!config) {
+      setAgentService(null);
       setError(null);
-      
-      // Initialize with welcome message
-      const welcomeMessage: ChatMessage = {
-        id: crypto.randomUUID(),
-        role: 'assistant',
-        content: 'こんにちは！Azure AI Foundry Agentです。何かお手伝いできることはありますか？',
-        timestamp: new Date(),
-      };
-      setMessages([welcomeMessage]);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : '設定エラーが発生しました');
+      setMessages([]); // メッセージもクリア
+      setAgentName('');
+      return;
     }
-  }, []);
+    
+    const initializeAgent = async () => {
+      try {
+        // エージェント情報を取得
+        const agentInfo = await getAzureAgentInfo(config.endpoint, config.apiKey, config.agentId);
+        setAgentName(agentInfo.name);
+        
+        const service = createAzureAIFoundryAgentService(config);
+        setAgentService(service);
+        setError(null);
+        
+        // Initialize with welcome message
+        const welcomeMessage: ChatMessage = {
+          id: crypto.randomUUID(),
+          role: 'assistant',
+          content: `こんにちは！${agentInfo.name}です。何かお手伝いできることはありますか？`,
+          timestamp: new Date(),
+        };
+        setMessages([welcomeMessage]);
+      } catch (err) {
+        console.warn('Agent service initialization failed:', err);
+        setError(err instanceof Error ? err.message : '設定エラーが発生しました');
+        setAgentService(null);
+        setMessages([]); // エラー時もメッセージをクリア
+        setAgentName('');
+      }
+    };
+
+    initializeAgent();
+  }, [config]);
 
   // Auto-scroll to bottom when new messages are added
   useEffect(() => {
@@ -59,20 +88,17 @@ export const ChatInterface: React.FC = () => {
       role: 'user',
       content: inputValue,
       timestamp: new Date(),
-      attachments: attachments.length > 0 ? [...attachments] : undefined,
     };
 
     setMessages(prev => [...prev, userMessage]);
     const messageText = inputValue;
-    const messageAttachments = [...attachments];
     setInputValue('');
-    setAttachments([]);
     setIsLoading(true);
     setError(null);
 
     try {
       // Create thread and run with message
-      const run = await agentService.createThreadAndRun(messageText, messageAttachments);
+      const run = await agentService.createThreadAndRun(messageText);
       setCurrentRun(run);
       setCurrentThreadId(run.thread_id);
 
@@ -141,113 +167,120 @@ export const ChatInterface: React.FC = () => {
     }
   };
 
-  const handleFilesAdded = (newFiles: FileAttachment[]) => {
-    setAttachments(prev => [...prev, ...newFiles]);
-  };
-
-  const handleFileRemoved = (fileId: string) => {
-    setAttachments(prev => prev.filter(file => file.id !== fileId));
-  };
-
   const handleNewConversation = () => {
     setCurrentThreadId(null);
     setCurrentRun(null);
     setMessages([{
       id: crypto.randomUUID(),
       role: 'assistant',
-      content: 'こんにちは！新しい会話を始めました。何かお手伝いできることはありますか？',
+      content: `こんにちは！${agentName || config?.agentId || 'エージェント'}です。新しい会話を始めました。何かお手伝いできることはありますか？`,
       timestamp: new Date(),
     }]);
     setError(null);
   };
 
-  if (!agentService && error) {
-    return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
-        <div className="bg-white rounded-lg shadow-lg p-6 max-w-md w-full">
-          <div className="flex items-center gap-3 text-red-600 mb-4">
-            <AlertCircle className="w-6 h-6" />
-            <h2 className="text-lg font-semibold">設定エラー</h2>
-          </div>
-          <p className="text-gray-700 mb-4">{error}</p>
-          <div className="bg-gray-50 p-4 rounded-lg">
-            <h3 className="font-medium mb-2">必要な環境変数:</h3>
-            <ul className="text-sm text-gray-600 space-y-1">
-              <li>• VITE_AZURE_AI_FOUNDARY_ENDPOINT_URL</li>
-              <li>• VITE_AZURE_AI_FOUNDARY_API_KEY</li>
-              <li>• VITE_AZURE_AI_AGENT_ID</li>
-            </ul>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
   return (
-    <div className="min-h-screen bg-gray-50 flex flex-col">
+    <div className="h-screen bg-gradient-to-b from-slate-900/50 to-purple-900/50 backdrop-blur-sm flex flex-col">
       {/* Header */}
-      <header className="bg-white shadow-sm border-b">
-        <div className="max-w-4xl mx-auto px-4 py-4 flex justify-between items-center">
+      <header className="bg-white/10 backdrop-blur-xl border-b border-white/20">
+        <div className="px-6 py-4 flex justify-between items-center">
           <div>
-            <h1 className="text-xl font-semibold text-gray-900">
+            <h1 className="text-2xl font-bold bg-gradient-to-r from-white to-blue-200 bg-clip-text text-transparent">
               Azure AI Foundry Agent Chat
             </h1>
-            <p className="text-sm text-gray-600">
-              テキストとファイルでAIエージェントと対話できます
-              {currentThreadId && (
-                <span className="ml-2 text-blue-600">
-                  • スレッドID: {currentThreadId.slice(-8)}
+            <p className="text-sm text-white/70 mt-1">
+              {!agentService ? (
+                <span className="text-red-300 flex items-center">
+                  <AlertCircle className="w-4 h-4 mr-1" />
+                  設定エラー - 左側の設定パネルで設定を確認してください
+                </span>
+              ) : (
+                <span className="flex items-center">
+                  <div className="w-2 h-2 bg-green-400 rounded-full mr-2 animate-pulse"></div>
+                  AIエージェントとの対話が可能です
+                  {currentThreadId && (
+                    <span className="ml-3 text-blue-300">
+                      スレッドID: {currentThreadId.slice(-8)}
+                    </span>
+                  )}
                 </span>
               )}
             </p>
           </div>
-          <button
-            onClick={handleNewConversation}
-            disabled={isLoading}
-            className="flex items-center gap-2 px-3 py-2 text-sm bg-blue-500 text-white rounded-lg hover:bg-blue-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-            title="新しい会話を開始"
-          >
-            <RefreshCw className="w-4 h-4" />
-            新しい会話
-          </button>
+          <div className="flex items-center gap-3">
+            <button
+              onClick={handleNewConversation}
+              disabled={isLoading || !agentService}
+              className="flex items-center gap-2 px-4 py-2 text-sm bg-gradient-to-r from-purple-500 to-pink-500 text-white rounded-xl hover:from-purple-600 hover:to-pink-600 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 shadow-lg hover:shadow-xl transform hover:scale-105 disabled:transform-none"
+              title="新しい会話を開始"
+            >
+              <RefreshCw className="w-4 h-4" />
+              新しい会話
+            </button>
+          </div>
         </div>
       </header>
 
       {/* Messages Area */}
       <div className="flex-1 overflow-hidden">
-        <div className="max-w-4xl mx-auto h-full flex flex-col">
-          <div className="flex-1 overflow-y-auto p-4">
-            {messages.length === 0 ? (
-              <div className="text-center py-12">
-                <div className="bg-white rounded-lg shadow-sm p-8 max-w-md mx-auto">
-                  <h3 className="text-lg font-medium text-gray-900 mb-2">
+        <div className="h-full flex flex-col">
+          <div className="flex-1 overflow-y-auto p-6">
+            {!agentService ? (
+              <div className="text-center py-16">
+                <div className="bg-white/10 backdrop-blur-xl rounded-2xl border border-white/20 p-8 max-w-md mx-auto">
+                  <div className="w-16 h-16 mx-auto mb-4 bg-red-500/20 rounded-2xl flex items-center justify-center">
+                    <AlertCircle className="w-8 h-8 text-red-300" />
+                  </div>
+                  <h3 className="text-xl font-semibold text-white mb-3">
+                    設定エラー
+                  </h3>
+                  <p className="text-white/70">
+                    {error || 'Azure AI Foundryの設定に問題があります。左側の設定パネルで設定を確認してください。'}
+                  </p>
+                </div>
+              </div>
+            ) : messages.length === 0 ? (
+              <div className="text-center py-16">
+                <div className="bg-white/10 backdrop-blur-xl rounded-2xl border border-white/20 p-8 max-w-md mx-auto">
+                  <div className="w-16 h-16 mx-auto mb-4 bg-gradient-to-r from-blue-500 to-purple-600 rounded-2xl flex items-center justify-center">
+                    <svg className="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+                    </svg>
+                  </div>
+                  <h3 className="text-xl font-semibold text-white mb-3">
                     チャットを開始しましょう
                   </h3>
-                  <p className="text-gray-600">
-                    下のテキストボックスにメッセージを入力するか、ファイルを添付してAIエージェントと対話を開始してください。
+                  <p className="text-white/70">
+                    下のテキストボックスにメッセージを入力してAIエージェントと対話を開始してください。
                   </p>
                 </div>
               </div>
             ) : (
-              <div className="space-y-4">
+              <div className="space-y-6 max-w-4xl mx-auto">
                 {messages.map((message) => (
-                  <ChatMessageComponent key={message.id} message={message} />
+                  <ChatMessageComponent key={message.id} message={message} agentName={agentName} />
                 ))}
+                <div ref={messagesEndRef} />
               </div>
             )}
             
             {isLoading && (
-              <div className="flex items-center justify-center py-4">
-                <div className="flex items-center gap-2 text-gray-600">
-                  <Loader2 className="w-5 h-5 animate-spin" />
-                  <span>
-                    AIエージェントが応答中...
-                    {currentRun && (
-                      <span className="ml-2 text-xs text-gray-500">
-                        Run ID: {currentRun.id.slice(-8)}
-                      </span>
-                    )}
-                  </span>
+              <div className="flex items-center justify-center py-6">
+                <div className="bg-white/10 backdrop-blur-xl rounded-2xl border border-white/20 px-6 py-4">
+                  <div className="flex items-center gap-3 text-white">
+                    <div className="relative">
+                      <Loader2 className="w-6 h-6 animate-spin text-blue-400" />
+                      <div className="absolute inset-0 w-6 h-6 border-2 border-purple-400/30 rounded-full animate-pulse"></div>
+                    </div>
+                    <div>
+                      <span className="font-medium">AIエージェントが応答中...</span>
+                      {currentRun && (
+                        <div className="text-xs text-white/60 mt-1">
+                          Run ID: {currentRun.id.slice(-8)}
+                        </div>
+                      )}
+                    </div>
+                  </div>
                 </div>
               </div>
             )}
@@ -256,43 +289,41 @@ export const ChatInterface: React.FC = () => {
           </div>
 
           {/* Input Area */}
-          <div className="border-t bg-white p-4">
+          <div className="bg-white/10 backdrop-blur-xl border-t border-white/20 p-6">
             {error && (
-              <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg">
-                <div className="flex items-center gap-2 text-red-700">
-                  <AlertCircle className="w-4 h-4" />
+              <div className="mb-4 p-4 bg-red-500/20 border border-red-400/30 rounded-xl backdrop-blur-sm">
+                <div className="flex items-center gap-3 text-red-200">
+                  <AlertCircle className="w-5 h-5" />
                   <span className="text-sm">{error}</span>
                 </div>
               </div>
             )}
             
             <div className="space-y-4">
-              {/* File Upload */}
-              <FileUpload
-                attachments={attachments}
-                onFilesAdded={handleFilesAdded}
-                onFileRemoved={handleFileRemoved}
-                disabled={isLoading}
-              />
-
               {/* Message Input */}
-              <div className="flex gap-3">
-                <div className="flex-1">
+              <div className="flex gap-4">
+                <div className="flex-1 relative">
                   <textarea
                     ref={textareaRef}
                     value={inputValue}
                     onChange={(e) => setInputValue(e.target.value)}
                     onKeyPress={handleKeyPress}
-                    placeholder="メッセージを入力してください..."
-                    disabled={isLoading}
-                    className="w-full px-4 py-3 border border-gray-300 rounded-lg resize-none focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:opacity-50 disabled:cursor-not-allowed min-h-12 max-h-30"
+                    placeholder={
+                      !config 
+                        ? "まず設定を行ってください..." 
+                        : !agentService 
+                        ? "設定を確認してください..." 
+                        : "メッセージを入力してください..."
+                    }
+                    disabled={isLoading || !config || !agentService}
+                    className="w-full px-6 py-4 bg-white/10 border border-white/30 rounded-2xl resize-none focus:ring-2 focus:ring-blue-400 focus:border-transparent disabled:opacity-50 disabled:cursor-not-allowed min-h-16 max-h-32 text-white placeholder-white/50 transition-all duration-200"
                   />
                 </div>
                 <button
                   onClick={handleSendMessage}
-                  disabled={!inputValue.trim() || isLoading}
-                  className="px-4 py-3 bg-blue-500 text-white rounded-lg hover:bg-blue-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center justify-center"
-                  title="送信 (Enter)"
+                  disabled={!inputValue.trim() || isLoading || !config || !agentService}
+                  className="px-6 py-4 bg-gradient-to-r from-blue-500 to-purple-600 text-white rounded-2xl hover:from-blue-600 hover:to-purple-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 flex items-center justify-center shadow-lg hover:shadow-xl transform hover:scale-105 disabled:transform-none"
+                  title={!config || !agentService ? "設定が必要です" : "送信 (Enter)"}
                 >
                   <Send className="w-5 h-5" />
                 </button>

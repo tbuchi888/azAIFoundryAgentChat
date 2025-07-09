@@ -11,10 +11,12 @@ Azure AI Foundry Agent と連携するモダンなChat UIアプリケーショ�
 
 - ✨ **モダンなUI**: React + TypeScript + Tailwind CSSによる美しいインターフェース
 - 🤖 **Azure AI Foundry Agent連携**: Azure AIサービスとの安全な通信
+- ⚙️ **UI設定機能**: ブラウザ上で簡単にAzure設定を管理
 - 📎 **ファイル添付**: PDF、Word、Excel、画像、テキストファイルのアップロード
 - 💬 **リアルタイムチャット**: 直感的なチャットインターフェース
 - 🔄 **自動リトライ**: 一時的な障害に対する自動復旧機能
 - 🛡️ **セキュリティ**: Azure認証とベストプラクティスに準拠
+- 🔧 **接続テスト**: 設定保存前の接続確認機能
 
 ## 📋 前提条件
 
@@ -32,21 +34,42 @@ Azure AI Foundry Agent と連携するモダンなChat UIアプリケーショ�
 npm install
 ```
 
-### 2. 環境変数の設定
+### 2. 設定方法
 
-`.env.example`をコピーして`.env`ファイルを作成し、Azure AI Foundry Agentの設定を入力してください。
+Azure AI Foundry Agentの設定は、UI上で直接行います：
+
+#### アクセストークンの取得
+
+Azure AI Foundryには正しいアクセストークンが必要です。Azure CLIを使用して取得してください：
 
 ```bash
-cp .env.example .env
+# Azure CLIでログイン（まだの場合）
+az login
+
+# Azure AI Foundry用のアクセストークンを取得
+az account get-access-token --scope https://ai.azure.com/.default | jq -r .accessToken
 ```
 
-`.env`ファイルを編集：
+**jqがインストールされていない場合:**
 
-```env
-VITE_AZURE_AI_FOUNDARY_ENDPOINT_URL=https://[YOUR_AIFOUNDRY].services.ai.azure.com/api/projects/[YOURPROJECT]
-VITE_AZURE_AI_FOUNDARY_API_KEY=[YOUR_APIKEY or AZ_AUTH_TOKEN]
-VITE_AZURE_AI_AGENT_ID=[YOUR_AGENTID i.e. asst_ABCDEFGXYZ]
+```bash
+az account get-access-token --scope https://ai.azure.com/.default
 ```
+
+出力されたJSONから手動で`accessToken`の値をコピーしてください。
+
+#### UI上での設定
+
+アプリケーションを起動すると、設定画面が表示されます。以下の情報を入力してください：
+
+- **エンドポイントURL**: `https://[YOUR_AIFOUNDRY].services.ai.azure.com/api/projects/[YOURPROJECT]`
+- **アクセストークン**: 上記のコマンドで取得したアクセストークン
+- **Agent ID**: 使用するエージェントのIDを一覧から選択
+
+設定はブラウザのローカルストレージに保存され、チャット画面の設定ボタンからいつでも変更できます。
+
+> [!TIP]
+> セキュリティとユーザビリティの観点から、環境変数ではなくUI上での設定を推奨しています。
 
 ### 3. 開発サーバーの起動
 
@@ -54,7 +77,7 @@ VITE_AZURE_AI_AGENT_ID=[YOUR_AGENTID i.e. asst_ABCDEFGXYZ]
 npm run dev
 ```
 
-ブラウザで http://localhost:5173 を開いてアプリケーションにアクセスできます。
+ブラウザで <http://localhost:5173> を開いてアプリケーションにアクセスできます。
 
 ## 🏗️ ビルド
 
@@ -124,9 +147,11 @@ docker-compose down
 
 ## 📚 使用方法
 
-1. **メッセージ送信**: テキストボックスにメッセージを入力し、Enterキーまたは送信ボタンでAIエージェントに送信
-2. **ファイル添付**: ドラッグ&ドロップまたはクリックしてファイルを選択し、メッセージと一緒に送信
-3. **対話履歴**: 送信したメッセージとAIからの応答が時系列で表示
+1. **初期設定**: アプリケーションを起動すると設定画面が表示されます。Azure AI Foundryの情報を入力してください
+2. **メッセージ送信**: テキストボックスにメッセージを入力し、Enterキーまたは送信ボタンでAIエージェントに送信
+3. **ファイル添付**: ドラッグ&ドロップまたはクリックしてファイルを選択し、メッセージと一緒に送信
+4. **設定変更**: チャット画面右上の設定ボタンから、いつでも設定を変更可能
+5. **対話履歴**: 送信したメッセージとAIからの応答が時系列で表示
 
 ## 🔧 技術仕様
 
@@ -153,7 +178,8 @@ docker-compose down
 - **自動リトライ**: 指数バックオフによる障害復旧
 
 ### セキュリティ
-- 環境変数による設定管理
+
+- ローカルストレージによる設定管理
 - CSRFプロテクション
 - ファイル形式とサイズの検証
 
