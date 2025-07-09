@@ -7,8 +7,8 @@ WORKDIR /app
 # Copy package files
 COPY package*.json ./
 
-# Install all dependencies (including devDependencies for build)
-RUN npm ci --silent
+# Install dependencies
+RUN npm ci --only=production --silent
 
 # Copy source code
 COPY . .
@@ -32,31 +32,31 @@ COPY --from=builder /app/dist /usr/share/nginx/html
 COPY docker-entrypoint.sh /usr/local/bin/
 RUN chmod +x /usr/local/bin/docker-entrypoint.sh
 
-# Create a non-root user
-RUN addgroup -g 1001 -S nodejs && \
-    adduser -S nextjs -u 1001
+# Create a non-root user for security
+RUN addgroup -g 1001 -S appuser && \
+    adduser -S appuser -u 1001
 
 # Set proper permissions
-RUN chown -R nextjs:nodejs /usr/share/nginx/html && \
-    chown -R nextjs:nodejs /var/cache/nginx && \
-    chown -R nextjs:nodejs /var/log/nginx && \
-    chown -R nextjs:nodejs /etc/nginx/conf.d && \
-    chown -R nextjs:nodejs /etc/nginx/nginx.conf && \
-    chown nextjs:nodejs /usr/local/bin/docker-entrypoint.sh
+RUN chown -R appuser:appuser /usr/share/nginx/html && \
+    chown -R appuser:appuser /var/cache/nginx && \
+    chown -R appuser:appuser /var/log/nginx && \
+    chown -R appuser:appuser /etc/nginx/conf.d && \
+    chown -R appuser:appuser /etc/nginx/nginx.conf && \
+    chown appuser:appuser /usr/local/bin/docker-entrypoint.sh
 
 # Create nginx pid directory with proper permissions
 RUN mkdir -p /var/run/nginx && \
-    chown -R nextjs:nodejs /var/run/nginx && \
+    chown -R appuser:appuser /var/run/nginx && \
     chmod 755 /var/run/nginx
 
 # Switch to non-root user
-USER nextjs
+USER appuser
 
 # Expose port
 EXPOSE 8080
 
 # Health check
-HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
+HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \
     CMD curl -f http://localhost:8080/ || exit 1
 
 # Start with entrypoint script
