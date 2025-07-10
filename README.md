@@ -93,13 +93,31 @@ npm run build
 
 ### Docker イメージのビルドと実行
 
-1. **Docker イメージのビルド:**
+#### シングルプラットフォームビルド（ローカル実行用）
 
 ```bash
 docker build -t azure-ai-foundry-chat-ui .
 ```
 
-2. **Docker コンテナの実行:**
+#### マルチプラットフォームビルド（推奨）
+
+ARM64（Apple Silicon）とAMD64（Intel/AMD）両方に対応したイメージをビルド：
+
+```bash
+# マルチプラットフォーム対応でローカルビルド
+docker buildx build --platform linux/amd64,linux/arm64 \
+  -t azure-ai-foundry-chat-ui:multiplatform .
+
+# Docker Hubにプッシュする場合
+docker buildx build --platform linux/amd64,linux/arm64 \
+  -t your-username/azure-ai-foundry-chat-ui:latest \
+  --push .
+```
+
+> [!NOTE]
+> マルチプラットフォームビルドを使用することで、Apple Silicon（M1/M2/M3/M4）とIntel/AMD両方のマシンで同じイメージを実行できます。
+
+#### Docker コンテナの実行
 
 ```bash
 docker run -d --rm \
@@ -108,34 +126,26 @@ docker run -d --rm \
   azure-ai-foundry-chat-ui
 ```
 
-3. **アクセス:**
-   - アプリケーション: <http://localhost:8080>
-   - ヘルスチェック: <http://localhost:8080/health>
+#### アクセス
 
-4. **停止:**
+- **アプリケーション**: <http://localhost:8080>
+- **ヘルスチェック**: <http://localhost:8080/health>
+
+#### 停止
 
 ```bash
 docker stop azure-ai-chat
 ```
 
-### Build 済み Docker イメージの実行
-1. **Docker コンテナの実行:**
+### Docker Hub からの実行
+
+公開済みのマルチプラットフォーム対応イメージを使用：
 
 ```bash
 docker run -d --rm \
   --name azure-ai-chat \
   -p 8080:8080 \
   takuyak/azure-ai-foundry-chat-ui:latest
-```
-
-2. **アクセス:**
-   - アプリケーション: <http://localhost:8080>
-   - ヘルスチェック: <http://localhost:8080/health>
-
-3. **停止:**
-
-```bash
-docker stop azure-ai-chat
 ```
 
 ## 📚 使用方法
@@ -148,12 +158,14 @@ docker stop azure-ai-chat
 ## 🏗️ アーキテクチャ
 
 ### フロントエンド
+
 - **React 18**: UIライブラリ
 - **TypeScript**: 型安全な開発
 - **Vite**: 高速ビルドツール
 - **Tailwind CSS**: ユーティリティファーストCSS
 
 ### Azure連携
+
 - **Azure AI Foundry Agent API**: チャット機能の中核
 - **Axios**: HTTP通信ライブラリ
 - **自動リトライ**: 指数バックオフによる障害復旧
@@ -166,7 +178,7 @@ docker stop azure-ai-chat
 
 ## 📁 プロジェクト構造
 
-```
+```text
 src/
 ├── components/              # Reactコンポーネント
 │   ├── ChatInterface.tsx    # メインチャット画面
