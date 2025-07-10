@@ -122,7 +122,7 @@ docker stop azure-ai-chat
 1. **Docker コンテナの実行:**
 
 ```bash
-docker run -d --rm \     
+docker run -d --rm \
   --name azure-ai-chat \
   -p 8080:8080 \
   takuyak/azure-ai-foundry-chat-ui:latest
