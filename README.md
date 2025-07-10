@@ -11,12 +11,12 @@ Azure AI Foundry Agent と連携するモダンなChat UIアプリケーショ�
 
 ## 🚀 機能
 
-- ✨ **モダンなUI**: React + TypeScript + Tailwind CSSによる美しいインターフェース
+- ✨ **UI**: React + TypeScript + Tailwind CSSによるインターフェース
 - 🤖 **Azure AI Foundry Agent連携**: Azure AIサービスとの安全な通信
 - ⚙️ **UI設定機能**: ブラウザ上で簡単にAzure設定を管理
 - 💬 **リアルタイムチャット**: 直感的なチャットインターフェース
 - 🔄 **自動リトライ**: 一時的な障害に対する自動復旧機能
-- 🛡️ **セキュリティ**: Azure認証とベストプラクティスに準拠
+- 🛡️ **セキュリティ**: Azure認証
 
 ## 📋 前提条件
 
