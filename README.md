@@ -118,6 +118,26 @@ docker run -d --rm \
 docker stop azure-ai-chat
 ```
 
+### Build 済み Docker イメージの実行
+1. **Docker コンテナの実行:**
+
+```bash
+docker run -d --rm \     
+  --name azure-ai-chat \
+  -p 8080:8080 \
+  takuyak/azure-ai-foundry-chat-ui:latest
+```
+
+2. **アクセス:**
+   - アプリケーション: <http://localhost:8080>
+   - ヘルスチェック: <http://localhost:8080/health>
+
+3. **停止:**
+
+```bash
+docker stop azure-ai-chat
+```
+
 ## 📚 使用方法
 
 1. **初期設定**: アプリケーションを起動すると設定画面が表示されます。Azure AI Foundryの情報を入力してください
